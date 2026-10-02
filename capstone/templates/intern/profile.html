@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}My Profile & Documents · Intern{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>My Profile & Documents</h1>
+        <p class="muted">Your account details, internship information, and uploaded files in one place.</p>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="card">
+        <div class="card-head"><h2>Account Information</h2></div>
+        <div class="profile-head">
+            <div class="avatar xl">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+            <div>
+                <h3>{{ user.get_full_name|default:user.username }}</h3>
+                <p class="muted">@{{ user.username }} · Intern</p>
+            </div>
+        </div>
+        <div class="detail-list">
+            <div class="detail-item"><span>Email</span><strong>{{ user.email }}</strong></div>
+            {% if profile %}
+            <div class="detail-item"><span>Student No.</span><strong>{{ profile.student_number|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Course</span><strong>{{ profile.course|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Phone</span><strong>{{ profile.phone|default:"—" }}</strong></div>
+            {% endif %}
+        </div>
+        <a href="{% url 'password_change' %}" class="link">Change my password →</a>
+        <div style="margin-top: 14px;">
+            <a href="{% url 'profile_edit' %}" class="btn btn-primary">Edit Profile</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>Internship Details</h2></div>
+        {% if profile and profile.company_name %}
+        <div class="detail-list">
+            <div class="detail-item"><span>Company</span><strong>{{ profile.company_name }}</strong></div>
+            <div class="detail-item"><span>Address</span><strong>{{ profile.company_address|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Position</span><strong>{{ profile.position|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Supervisor</span><strong>{{ profile.supervisor_name|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Start Date</span><strong>{{ profile.start_date|date:"M d, Y"|default:"—" }}</strong></div>
+            <div class="detail-item"><span>End Date</span><strong>{{ profile.end_date|date:"M d, Y"|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Hours Required</span><strong>{{ profile.hours_required }} hours</strong></div>
+        </div>
+        {% else %}
+        <div class="empty-state compact">
+            <div class="empty-ico">🏢</div>
+            <p>No internship has been assigned to you yet.<br>Please contact your coordinator.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" id="my-documents">
+    <div class="card-head">
+        <h2>My Documents</h2>
+        <a href="{% url 'documents' %}" class="link">Open Documents page →</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="document-upload-form">
+        {% csrf_token %}
+        <input type="hidden" name="form_kind" value="document">
+        {% for field in document_form %}
+        <div class="field">
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary" data-loading>Upload Document</button>
+    </form>
+
+    {% if documents %}
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Document Name</th><th>Type</th><th>Upload Date</th><th>Status</th><th>Feedback</th><th>File</th></tr></thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td><strong>{{ document.name }}</strong></td>
+                    <td>{{ document.get_document_type_display }}</td>
+                    <td>{{ document.uploaded_at|date:"M d, Y h:i A" }}</td>
+                    <td><span class="badge badge-{{ document.status|lower }}">{{ document.get_status_display }}</span></td>
+                    <td>{{ document.feedback|default:"—" }}</td>
+                    <td><div class="document-actions"><a href="{% url 'document_view' document.pk %}" target="_blank" rel="noopener" class="btn btn-xs">View</a><a href="{% url 'document_download' document.pk %}" class="btn btn-xs">Download</a></div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state compact"><div class="empty-ico">▧</div><p>You have not uploaded any documents yet.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

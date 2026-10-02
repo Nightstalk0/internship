@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Documents</h1><p class="muted">Upload requirements and submit internship reports.</p></div></div>
+<div class="two-col">
+    <div class="card"><div class="card-head"><h2>Upload Requirement</h2></div>
+        <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="form_kind" value="document">
+            {% for field in form %}<div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+            <button class="btn btn-primary">Upload document</button>
+        </form>
+    </div>
+    <div class="card"><div class="card-head"><h2>Submit Report</h2></div>
+        <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="form_kind" value="report">
+            {% for field in report_form %}<div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+            <button class="btn btn-primary">Submit report</button>
+        </form>
+    </div>
+</div>
+<div class="card"><div class="card-head"><h2>Submission Tracking</h2></div><div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Name</th><th>Date</th><th>Status</th><th>Feedback</th><th>File</th></tr></thead>
+    <tbody>
+        {% for item in documents %}<tr><td>Requirement</td><td><strong>{{ item.name }}</strong></td><td>{{ item.uploaded_at|date:'M d, Y' }}</td><td><span class="badge badge-{{ item.status|lower }}">{{ item.get_status_display }}</span></td><td>{{ item.feedback|default:'-' }}</td><td><div class="document-actions"><a href="{% url 'document_view' item.pk %}" target="_blank" rel="noopener" class="btn btn-xs">View</a><a href="{% url 'document_download' item.pk %}" class="btn btn-xs">Download</a></div></td></tr>{% endfor %}
+        {% for item in reports %}<tr><td>Report</td><td><strong>{{ item.title }}</strong></td><td>{{ item.submitted_at|date:'M d, Y' }}</td><td><span class="badge badge-{{ item.status|lower }}">{{ item.get_status_display }}</span></td><td>{{ item.feedback|default:'-' }}</td><td>{{ item.file.name|default:'-' }}</td></tr>{% endfor %}
+    </tbody>
+</table></div></div>
+{% endblock %}

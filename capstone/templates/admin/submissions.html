@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Photo Submissions · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Photo Submissions</h1>
+        <p class="muted">Review and approve proof of internship activities.</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-ico indigo">🖼</div><div><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total</div></div></div>
+    <div class="stat-card"><div class="stat-ico amber">⏳</div><div><div class="stat-value">{{ stats.pending }}</div><div class="stat-label">Pending</div></div></div>
+    <div class="stat-card"><div class="stat-ico green">✔</div><div><div class="stat-value">{{ stats.approved }}</div><div class="stat-label">Approved</div></div></div>
+    <div class="stat-card"><div class="stat-ico red">✖</div><div><div class="stat-value">{{ stats.rejected }}</div><div class="stat-label">Rejected</div></div></div>
+</div>
+
+<div class="card">
+    <form method="get" class="filter-form">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search intern name or caption">
+        <select name="intern">
+            <option value="">All interns</option>
+            {% for i in interns %}
+            <option value="{{ i.pk }}" {% if intern_id == i.pk|stringformat:'i' %}selected{% endif %}>{{ i.get_full_name|default:i.username }}</option>
+            {% endfor %}
+        </select>
+        <select name="status">
+            <option value="">All statuses</option>
+            {% for value, label in choices %}
+            <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        {% if q or status or intern_id %}<a href="{% url 'admin_submissions' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    {% if submissions %}
+    <div class="photo-grid">
+        {% for s in submissions %}
+        <div class="photo-card">
+            <img src="{{ s.image.url }}" alt="{{ s.caption|truncatewords:6 }}" class="clickable"
+                 onclick="openLightbox('{{ s.image.url }}', '{{ s.caption|escapejs }}')">
+            <div class="photo-card-body">
+                <div class="photo-card-top">
+                    <span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span>
+                    <span class="photo-date">{{ s.submitted_at|date:"M d, Y h:i A" }}</span>
+                </div>
+                <div class="photo-intern">
+                    <a href="{% url 'intern_detail' s.intern.pk %}" class="link strong">{{ s.intern.get_full_name|default:s.intern.username }}</a>
+                </div>
+                <p class="photo-caption">{{ s.caption }}</p>
+                {% if s.feedback %}
+                <div class="feedback-box"><strong>Feedback:</strong> {{ s.feedback }}</div>
+                {% endif %}
+                <a href="{% url 'review_submission' s.pk %}" class="btn btn-sm btn-block">Review</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <div class="empty-ico">🖼</div>
+        <p>No submissions match your filters.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

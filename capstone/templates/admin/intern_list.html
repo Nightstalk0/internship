@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Interns · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Interns</h1>
+        <p class="muted">{{ interns|length }} intern{{ interns|length|pluralize }} found.</p>
+    </div>
+    <a href="{% url 'intern_create' %}" class="btn btn-primary">+ Add Intern</a>
+</div>
+
+<div class="card">
+    <form method="get" class="filter-form">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search name, username, email, student no.">
+        <input type="text" name="company" value="{{ company }}" placeholder="Filter by company">
+        <select name="status">
+            <option value="">All statuses</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        {% if q or status or company %}<a href="{% url 'intern_list' %}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    {% if interns %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Intern</th><th>Student No.</th><th>Company</th><th>Position</th><th>Submissions</th><th>Status</th><th class="text-right">Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for intern in interns %}
+                <tr>
+                    <td>
+                        <div class="cell-user">
+                            <div class="avatar sm">{{ intern.first_name|first|upper }}{{ intern.last_name|first|upper }}</div>
+                            <div>
+                                <a href="{% url 'intern_detail' intern.pk %}" class="link strong">{{ intern.get_full_name|default:intern.username }}</a>
+                                <div class="muted small">{{ intern.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ intern.profile.student_number|default:"—" }}</td>
+                    <td>{{ intern.profile.company_name|default:"—" }}</td>
+                    <td>{{ intern.profile.position|default:"—" }}</td>
+                    <td>{{ intern.submissions.count }}</td>
+                    <td><span class="badge {% if intern.is_active %}badge-approved{% else %}badge-rejected{% endif %}">{% if intern.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+                    <td class="text-right">
+                        <a href="{% url 'intern_detail' intern.pk %}" class="btn btn-xs">View</a>
+                        <a href="{% url 'intern_edit' intern.pk %}" class="btn btn-xs">Edit</a>
+                        <a href="{% url 'intern_delete' intern.pk %}" class="btn btn-xs btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state compact">
+        <div class="empty-ico">🔍</div>
+        <p>No interns match your filters.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

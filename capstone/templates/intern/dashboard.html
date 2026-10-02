@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Intern{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Welcome, {{ user.first_name|default:user.username }} 👋</h1>
+        <p class="muted">Here's an overview of your internship progress.</p>
+    </div>
+    <a href="{% url 'submit_photo' %}" class="btn btn-primary">+ Submit Photo</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-ico blue">🖼</div>
+        <div><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total Photos</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico amber">⏳</div>
+        <div><div class="stat-value">{{ stats.pending }}</div><div class="stat-label">Pending</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico green">✔</div>
+        <div><div class="stat-value">{{ stats.approved }}</div><div class="stat-label">Approved</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico red">✖</div>
+        <div><div class="stat-value">{{ stats.rejected }}</div><div class="stat-label">Rejected</div></div>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="card">
+        <div class="card-head"><h2>My Internship</h2></div>
+        {% if profile %}
+        <div class="detail-list">
+            <div class="detail-item"><span>Company</span><strong>{{ profile.company_name|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Address</span><strong>{{ profile.company_address|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Position</span><strong>{{ profile.position|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Supervisor</span><strong>{{ profile.supervisor_name|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Duration</span><strong>{{ profile.start_date|date:"M d, Y"|default:"—" }} – {{ profile.end_date|date:"M d, Y"|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Hours Required</span><strong>{{ profile.hours_required }} hrs</strong></div>
+        </div>
+        {% else %}
+        <p class="muted">No internship details assigned yet. Please contact your coordinator.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>📢 Announcements</h2></div>
+        {% if announcements %}
+        <div class="announcement-list">
+            {% for a in announcements %}
+            <div class="announcement">
+                <div class="announcement-title">{{ a.title }}</div>
+                <div class="announcement-msg">{{ a.message|linebreaksbr }}</div>
+                <div class="announcement-meta">{{ a.created_at|date:"M d, Y h:i A" }}{% if a.created_by %} · {{ a.created_by.get_full_name|default:a.created_by.username }}{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No announcements yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h2>Recent Submissions</h2>
+        <a href="{% url 'my_submissions' %}" class="link">View all →</a>
+    </div>
+    {% if recent %}
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Photo</th><th>Caption</th><th>Submitted</th><th>Status</th><th>Feedback</th></tr></thead>
+            <tbody>
+                {% for s in recent %}
+                <tr>
+                    <td><img src="{{ s.image.url }}" class="thumb clickable" onclick="openLightbox('{{ s.image.url }}', '{{ s.caption|escapejs }}')" alt="photo"></td>
+                    <td class="cap">{{ s.caption|truncatewords:12 }}</td>
+                    <td>{{ s.submitted_at|date:"M d, Y h:i A" }}</td>
+                    <td><span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span></td>
+                    <td class="cap">{{ s.feedback|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted">You haven't submitted any photos yet. <a href="{% url 'submit_photo' %}" class="link">Submit your first photo</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

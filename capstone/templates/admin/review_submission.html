@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Review Submission · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Review Submission</h1>
+        <p class="muted"><a href="{% url 'admin_submissions' %}" class="link">← Back to submissions</a></p>
+    </div>
+</div>
+
+<div class="review-layout">
+    <div class="card">
+        <img src="{{ submission.image.url }}" class="review-img clickable"
+             onclick="openLightbox('{{ submission.image.url }}', '{{ submission.caption|escapejs }}')" alt="submission">
+        <div class="review-meta">
+            <div class="detail-list">
+                <div class="detail-item"><span>Intern</span>
+                    <strong><a href="{% url 'intern_detail' submission.intern.pk %}" class="link">{{ submission.intern.get_full_name|default:submission.intern.username }}</a></strong></div>
+                <div class="detail-item"><span>Company</span><strong>{{ submission.intern.profile.company_name|default:"—" }}</strong></div>
+                <div class="detail-item"><span>Submitted</span><strong>{{ submission.submitted_at|date:"M d, Y h:i A" }}</strong></div>
+                <div class="detail-item"><span>Status</span><strong><span class="badge badge-{{ submission.status|lower }}">{{ submission.status }}</span></strong></div>
+                {% if submission.reviewed_by %}
+                <div class="detail-item"><span>Reviewed by</span><strong>{{ submission.reviewed_by.get_full_name|default:submission.reviewed_by.username }} · {{ submission.reviewed_at|date:"M d, Y h:i A" }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>Caption</h2></div>
+        <p>{{ submission.caption|linebreaksbr }}</p>
+
+        <div class="card-head" style="margin-top:1.5rem"><h2>Decision</h2></div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label for="feedback">Feedback / Comments (shown to the intern)</label>
+                <textarea name="feedback" id="feedback" rows="4" maxlength="500"
+                          placeholder="e.g. Great documentation of your front desk duties.">{{ submission.feedback }}</textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" name="action" value="reject" class="btn btn-danger" data-loading
+                        onclick="return confirm('Reject this submission?')">✖ Reject</button>
+                <button type="submit" name="action" value="approve" class="btn btn-success" data-loading>✔ Approve</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

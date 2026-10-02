@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Internship Management System{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    {% if user.is_authenticated %}
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-mark">IM</div>
+            <div>
+                <div class="brand-name">Internship MS</div>
+                <div class="brand-sub">{{ user.get_role_display|default:"Intern" }}</div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="{% url 'home' %}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}"><span class="nav-ico">▦</span> Dashboard</a>
+            {% if user.is_admin_role or user.is_mentor_role %}
+            <a href="{% url 'user_management' %}" class="nav-link {% if active_page == 'users' %}active{% endif %}"><span class="nav-ico">♙</span> User Management</a>
+            <a href="{% url 'record_list' %}" class="nav-link {% if active_page == 'records' %}active{% endif %}"><span class="nav-ico">▤</span> Internship Records</a>
+            <a href="{% url 'review_documents' %}" class="nav-link {% if active_page == 'documents' %}active{% endif %}"><span class="nav-ico">▧</span> Documents</a>
+            {% else %}
+            <a href="{% url 'intern_profile' %}" class="nav-link {% if active_page == 'profile' %}active{% endif %}"><span class="nav-ico">◉</span> My Profile &amp; Documents</a>
+            {% endif %}
+            <a href="{% url 'progress' %}" class="nav-link {% if active_page == 'progress' %}active{% endif %}"><span class="nav-ico">◷</span> Attendance</a>
+            <a href="{% url 'announcement_feed' %}" class="nav-link {% if active_page == 'announcements' %}active{% endif %}"><span class="nav-ico">◌</span> Announcements</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="avatar">{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="sidebar-user-role">{{ user.email }}</div>
+                </div>
+            </div>
+            <button type="submit" form="logout-form" class="nav-link logout">
+                <span class="nav-ico">⏻</span> Logout
+            </button>
+            <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none;">
+                {% csrf_token %}
+            </form>
+        </div>
+    </aside>
+    {% endif %}
+
+    <main class="main {% if not user.is_authenticated %}main-full{% endif %}">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+                <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<div class="lightbox" id="lightbox">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img src="" alt="Preview" id="lightbox-img">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+</div>
+
+{% block scripts %}{% endblock %}
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

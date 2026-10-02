@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ intern.get_full_name }} · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="profile-head">
+        <div class="avatar xl">{{ intern.first_name|first|upper }}{{ intern.last_name|first|upper }}</div>
+        <div>
+            <h1>{{ intern.get_full_name|default:intern.username }}</h1>
+            <p class="muted">@{{ intern.username }} · {{ intern.email }} ·
+                <span class="badge {% if intern.is_active %}badge-approved{% else %}badge-rejected{% endif %}">{% if intern.is_active %}Active{% else %}Inactive{% endif %}</span>
+            </p>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'intern_edit' intern.pk %}" class="btn btn-primary">Edit</a>
+        <a href="{% url 'intern_delete' intern.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="stat-ico indigo">🖼</div><div><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total Photos</div></div></div>
+    <div class="stat-card"><div class="stat-ico amber">⏳</div><div><div class="stat-value">{{ stats.pending }}</div><div class="stat-label">Pending</div></div></div>
+    <div class="stat-card"><div class="stat-ico green">✔</div><div><div class="stat-value">{{ stats.approved }}</div><div class="stat-label">Approved</div></div></div>
+    <div class="stat-card"><div class="stat-ico red">✖</div><div><div class="stat-value">{{ stats.rejected }}</div><div class="stat-label">Rejected</div></div></div>
+</div>
+
+<div class="two-col">
+    <div class="card">
+        <div class="card-head"><h2>Profile & Internship</h2></div>
+        {% if profile %}
+        <div class="detail-list">
+            <div class="detail-item"><span>Student No.</span><strong>{{ profile.student_number|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Course</span><strong>{{ profile.course|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Phone</span><strong>{{ profile.phone|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Company</span><strong>{{ profile.company_name|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Address</span><strong>{{ profile.company_address|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Position</span><strong>{{ profile.position|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Supervisor</span><strong>{{ profile.supervisor_name|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Duration</span><strong>{{ profile.start_date|date:"M d, Y"|default:"—" }} – {{ profile.end_date|date:"M d, Y"|default:"—" }}</strong></div>
+            <div class="detail-item"><span>Hours Required</span><strong>{{ profile.hours_required }} hrs</strong></div>
+        </div>
+        {% else %}
+        <p class="muted">No profile information.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>Submission History</h2>
+            <a href="{% url 'admin_submissions' %}?intern={{ intern.pk }}" class="link">View in submissions →</a>
+        </div>
+        {% if submissions %}
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Photo</th><th>Caption</th><th>Submitted</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for s in submissions %}
+                    <tr>
+                        <td><img src="{{ s.image.url }}" class="thumb clickable" onclick="openLightbox('{{ s.image.url }}', '{{ s.caption|escapejs }}')" alt=""></td>
+                        <td class="cap">{{ s.caption|truncatewords:10 }}</td>
+                        <td>{{ s.submitted_at|date:"M d, Y h:i A" }}</td>
+                        <td><span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted">This intern has not submitted any photos.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h2>Documents Submitted by This Intern</h2>
+        <a href="{% url 'review_documents' %}?q={{ intern.username }}" class="link">Review all documents →</a>
+    </div>
+    {% if documents %}
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Document Name</th><th>Type</th><th>Upload Date</th><th>Status</th><th>Feedback</th><th>File</th><th>Review</th></tr></thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td><strong>{{ document.name }}</strong></td>
+                    <td>{{ document.get_document_type_display }}</td>
+                    <td>{{ document.uploaded_at|date:"M d, Y h:i A" }}</td>
+                    <td><span class="badge badge-{{ document.status|lower }}">{{ document.get_status_display }}</span></td>
+                    <td>{{ document.feedback|default:"—" }}</td>
+                    <td><div class="document-actions"><a href="{% url 'document_view' document.pk %}" target="_blank" rel="noopener" class="btn btn-xs">View</a><a href="{% url 'document_download' document.pk %}" class="btn btn-xs">Download</a></div></td>
+                    <td>
+                        <form method="post" action="{% url 'review_document' document.pk %}" class="review-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'intern_detail' intern.pk %}">
+                            <select name="status">
+                                <option value="APPROVED" {% if document.status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                                <option value="REJECTED" {% if document.status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                            </select>
+                            <input type="text" name="feedback" value="{{ document.feedback }}" placeholder="Feedback">
+                            <button type="submit" class="btn btn-xs">Save</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state compact"><div class="empty-ico">▧</div><p>This intern has not uploaded any documents.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

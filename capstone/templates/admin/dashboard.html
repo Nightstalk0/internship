@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Admin Dashboard</h1>
+        <p class="muted">Monitor interns and photo submissions at a glance.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'intern_create' %}" class="btn btn-primary">+ Add Intern</a>
+    </div>
+</div>
+
+<div class="stats-grid six">
+    <div class="stat-card">
+        <div class="stat-ico blue">👥</div>
+        <div><div class="stat-value">{{ total_interns }}</div><div class="stat-label">Total Interns</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico green">✔</div>
+        <div><div class="stat-value">{{ active_interns }}</div><div class="stat-label">Active Interns</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico indigo">🖼</div>
+        <div><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total Submissions</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico amber">⏳</div>
+        <div><div class="stat-value">{{ stats.pending }}</div><div class="stat-label">Pending</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico green">✔</div>
+        <div><div class="stat-value">{{ stats.approved }}</div><div class="stat-label">Approved</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-ico red">✖</div>
+        <div><div class="stat-value">{{ stats.rejected }}</div><div class="stat-label">Rejected</div></div>
+    </div>
+</div>
+
+<section class="card agenda-calendar" aria-labelledby="agenda-calendar-title">
+    <div class="card-head agenda-calendar-head">
+        <div class="calendar-navigation">
+            <h2 id="agenda-calendar-title">{{ calendar_month }}</h2>
+            <div class="calendar-controls">
+                <a class="calendar-nav-button" href="?month={{ previous_month }}" aria-label="Previous month">&lsaquo;</a>
+                <a class="calendar-nav-button" href="?month={{ next_month }}" aria-label="Next month">&rsaquo;</a>
+            </div>
+        </div>
+    </div>
+    <div class="calendar-grid" role="grid" aria-label="{{ calendar_month }}">
+        {% for weekday in calendar_weekdays %}<div class="calendar-weekday" role="columnheader">{{ weekday }}</div>{% endfor %}
+        {% for day in calendar_days %}
+        <div class="calendar-day{% if not day.in_month %} outside-month{% endif %}" role="gridcell">
+            <button type="button" class="calendar-date{% if day.date == today %} is-selected{% endif %}" data-date="{{ day.date|date:'Y-m-d' }}" aria-label="{{ day.date|date:'F j, Y' }}{% if day.agendas %}, {{ day.agendas|length }} agendas{% endif %}"{% if day.date == today %} aria-current="date"{% endif %}>
+                <span class="calendar-day-number">{{ day.date|date:'j' }}</span>
+                {% if day.agendas %}<span class="calendar-dot" aria-hidden="true"></span>{% endif %}
+            </button>
+            <div class="calendar-agenda-data" hidden>
+                {% for agenda in day.agendas %}
+                <button type="button" class="calendar-agenda" data-title="{{ agenda.title }}" data-description="{{ agenda.description }}" data-date="{{ agenda.date|date:'Y-m-d' }}" data-time="{{ agenda.time|time:'H:i' }}" data-update-url="{% url 'agenda_edit' agenda.pk %}" data-delete-url="{% url 'agenda_delete' agenda.pk %}">
+                    <time>{{ agenda.time|time:'g:i A' }}</time><span>{{ agenda.title }}</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<div class="agenda-modal" id="agenda-modal" aria-hidden="true">
+    <section class="agenda-dialog" role="dialog" aria-modal="true" aria-labelledby="agenda-modal-title">
+        <button type="button" class="agenda-close" aria-label="Close">&times;</button>
+        <div id="agenda-day-view" hidden>
+            <h2 id="agenda-day-title"></h2>
+            <p id="agenda-day-empty" class="muted" hidden>No agendas for this date.</p>
+            <div id="agenda-day-list" class="agenda-day-list"></div>
+            <button type="button" class="btn btn-primary" id="agenda-add-button">Add agenda</button>
+        </div>
+        <div id="agenda-details" hidden>
+            <button type="button" class="agenda-back-button" id="agenda-back-to-day">&lsaquo; Back to date</button>
+            <h2 id="agenda-modal-title"></h2>
+            <p id="agenda-description" class="agenda-description"></p>
+            <p class="agenda-datetime"><time id="agenda-date"></time> at <time id="agenda-time"></time></p>
+            <div class="agenda-actions">
+                <button type="button" class="btn btn-primary" id="agenda-edit-button">Edit</button>
+                <form method="post" id="agenda-delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="month" value="{{ calendar_month_value }}">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+        <form method="post" id="agenda-form" action="{% url 'agenda_create' %}" hidden>
+            {% csrf_token %}
+            <input type="hidden" name="month" value="{{ calendar_month_value }}">
+            <h2 id="agenda-form-heading">Add agenda</h2>
+            {% for field in agenda_form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+            <div class="agenda-actions">
+                <button type="submit" class="btn btn-primary" data-loading>Save agenda</button>
+                <button type="button" class="btn btn-ghost" id="agenda-cancel-edit">Cancel</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<section class="card task-management" id="task-management" aria-labelledby="task-management-title">
+    <div class="card-head task-heading">
+        <div>
+            <h2 id="task-management-title">Task Management</h2>
+            <p class="muted">Create, assign, and track administrative work.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="task-create-button">+ Create Task</button>
+    </div>
+    <div class="stats-grid task-stats">
+        <div class="stat-card"><div><div class="stat-value">{{ task_counts.total }}</div><div class="stat-label">Total Tasks</div></div></div>
+        <div class="stat-card"><div><div class="stat-value">{{ task_counts.pending }}</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div><div class="stat-value">{{ task_counts.in_progress }}</div><div class="stat-label">In Progress</div></div></div>
+        <div class="stat-card"><div><div class="stat-value">{{ task_counts.completed }}</div><div class="stat-label">Completed</div></div></div>
+        <div class="stat-card"><div><div class="stat-value">{{ task_counts.overdue }}</div><div class="stat-label">Overdue</div></div></div>
+    </div>
+    <form method="get" class="filter-form task-filters" aria-label="Filter tasks">
+        <input type="search" name="task_q" value="{{ task_filters.q }}" placeholder="Search task title" aria-label="Search task title">
+        <select name="task_assignee" aria-label="Filter by assigned admin">
+            <option value="">All admins</option>
+            {% for admin in task_admins %}<option value="{{ admin.pk }}"{% if task_filters.assignee == admin.pk|stringformat:'s' %} selected{% endif %}>{{ admin.get_full_name|default:admin.username }} ({{ admin.email|default:admin.username }})</option>{% endfor %}
+        </select>
+        <select name="task_status" aria-label="Filter by status">
+            <option value="">All statuses</option>
+            {% for value,label in task_form.fields.status.choices %}<option value="{{ value }}"{% if task_filters.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="task_priority" aria-label="Filter by priority">
+            <option value="">All priorities</option>
+            {% for value,label in task_form.fields.priority.choices %}<option value="{{ value }}"{% if task_filters.priority == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <input type="date" name="task_due_date" value="{{ task_filters.due_date }}" aria-label="Filter by due date">
+        <button class="btn btn-ghost btn-sm" type="submit">Filter</button>
+        <a class="btn btn-ghost btn-sm" href="{% url 'admin_dashboard' %}#task-management">Clear</a>
+    </form>
+    {% if tasks %}
+    <div class="table-wrap">
+        <table class="task-table">
+            <thead><tr><th>Task</th><th>Description</th><th>Assigned Admin</th><th>Priority</th><th>Due Date</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><strong>{{ task.title }}</strong></td>
+                    <td class="task-description">{{ task.description|default:'-'|truncatewords:14 }}</td>
+                    <td>{% if task.assigned_to %}<span class="task-assignee"><span class="task-avatar">{{ task.assigned_to.first_name|first|default:task.assigned_to.username|first|upper }}</span><span><strong>{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</strong><small>{{ task.assigned_to.email|default:task.assigned_to.username }}</small></span></span>{% else %}<span class="muted">Unassigned</span>{% endif %}</td>
+                    <td><span class="badge priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+                    <td>{% if task.due_date %}<span{% if task.due_date < today and task.status != 'COMPLETED' and task.status != 'CANCELLED' %} class="task-overdue-date"{% endif %}>{{ task.due_date|date:'M d, Y' }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+                    <td><span class="badge badge-{{ task.status|lower }} task-status-badge">{{ task.get_status_display }}</span><form method="post" action="{% url 'task_update_status' task.pk %}" class="task-status-form">{% csrf_token %}<select name="status" aria-label="Status for {{ task.title }}">{% for value,label in task_form.fields.status.choices %}<option value="{{ value }}"{% if task.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn btn-xs" type="submit">Save</button></form></td>
+                    <td>{{ task.created_at|date:'M d, Y' }}</td>
+                    <td><div class="task-actions">
+                        <button type="button" class="btn btn-xs task-view-button" data-title="{{ task.title }}" data-description="{{ task.description|escape }}" data-assignee="{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:'Unassigned' }}" data-priority="{{ task.get_priority_display }}" data-status="{{ task.get_status_display }}" data-due="{{ task.due_date|date:'M d, Y'|default:'Not set' }}" data-due-iso="{{ task.due_date|date:'Y-m-d' }}" data-created="{{ task.created_at|date:'M d, Y' }}">View</button>
+                        <button type="button" class="btn btn-xs task-edit-button" data-edit-url="{% url 'task_edit' task.pk %}" data-assignee="{{ task.assigned_to_id|default:'' }}">Edit</button>
+                        <button type="button" class="btn btn-xs task-reassign-button" data-edit-url="{% url 'task_edit' task.pk %}" data-assignee="{{ task.assigned_to_id|default:'' }}">Reassign</button>
+                        <form method="post" action="{% url 'task_delete' task.pk %}" onsubmit="return confirm('Permanently delete this task?');">{% csrf_token %}<button class="btn btn-xs btn-danger" type="submit">Delete</button></form>
+                    </div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state compact"><p>{% if task_filters.q or task_filters.assignee or task_filters.status or task_filters.priority or task_filters.due_date %}No tasks match these filters.{% else %}No tasks yet. Create the first task to get started.{% endif %}</p></div>
+    {% endif %}
+</section>
+
+<div class="agenda-modal task-modal" id="task-modal" aria-hidden="true">
+    <section class="agenda-dialog" role="dialog" aria-modal="true" aria-labelledby="task-modal-heading">
+        <button type="button" class="agenda-close" id="task-modal-close" aria-label="Close">&times;</button>
+        <div id="task-view-panel" hidden>
+            <h2 id="task-view-title"></h2>
+            <p id="task-view-description" class="agenda-description"></p>
+            <dl class="task-detail-list">
+                <div><dt>Assigned admin</dt><dd id="task-view-assignee"></dd></div>
+                <div><dt>Priority</dt><dd id="task-view-priority"></dd></div>
+                <div><dt>Due date</dt><dd id="task-view-due"></dd></div>
+                <div><dt>Status</dt><dd id="task-view-status"></dd></div>
+                <div><dt>Created</dt><dd id="task-view-created"></dd></div>
+            </dl>
+        </div>
+        <form method="post" id="task-form" action="{% url 'task_create' %}" hidden>
+            {% csrf_token %}
+            <h2 id="task-modal-heading">Create Task</h2>
+            {% for field in task_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+            <div class="agenda-actions"><button type="submit" class="btn btn-primary">Save Task</button><button type="button" class="btn btn-ghost" id="task-cancel">Cancel</button></div>
+        </form>
+    </section>
+</div>
+
+<div class="two-col">
+    <div class="card">
+        <div class="card-head">
+            <h2>⏳ Pending Review</h2>
+            <a href="{% url 'admin_submissions' %}?status=PENDING" class="link">Review all →</a>
+        </div>
+        {% if pending_submissions %}
+        <div class="mini-list">
+            {% for s in pending_submissions %}
+            <a href="{% url 'review_submission' s.pk %}" class="mini-item">
+                <img src="{{ s.image.url }}" class="thumb-sm" alt="">
+                <div class="mini-info">
+                    <strong>{{ s.intern.get_full_name|default:s.intern.username }}</strong>
+                    <span>{{ s.caption|truncatewords:8 }}</span>
+                </div>
+                <span class="photo-date">{{ s.submitted_at|date:"M d, h:i A" }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">🎉 No pending submissions. All caught up!</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>📢 Announcements</h2>
+            <a href="{% url 'announcements' %}" class="link">Manage →</a>
+        </div>
+        {% if announcements %}
+        <div class="announcement-list">
+            {% for a in announcements %}
+            <div class="announcement">
+                <div class="announcement-title">{{ a.title }}</div>
+                <div class="announcement-msg">{{ a.message|truncatewords:20|linebreaksbr }}</div>
+                <div class="announcement-meta">{{ a.created_at|date:"M d, Y" }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No announcements yet. <a href="{% url 'announcements' %}" class="link">Create one</a>.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h2>Latest Submissions</h2>
+        <a href="{% url 'admin_submissions' %}" class="link">View all →</a>
+    </div>
+    {% if recent_submissions %}
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Photo</th><th>Intern</th><th>Caption</th><th>Submitted</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for s in recent_submissions %}
+                <tr>
+                    <td><img src="{{ s.image.url }}" class="thumb clickable" onclick="openLightbox('{{ s.image.url }}', '{{ s.caption|escapejs }}')" alt=""></td>
+                    <td><a href="{% url 'intern_detail' s.intern.pk %}" class="link">{{ s.intern.get_full_name|default:s.intern.username }}</a></td>
+                    <td class="cap">{{ s.caption|truncatewords:10 }}</td>
+                    <td>{{ s.submitted_at|date:"M d, Y h:i A" }}</td>
+                    <td><span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted">No submissions yet.</p>
+    {% endif %}
+</div>
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('agenda-modal');
+    const dayView = document.getElementById('agenda-day-view');
+    const dayList = document.getElementById('agenda-day-list');
+    const details = document.getElementById('agenda-details');
+    const dialog = modal.querySelector('[role="dialog"]');
+    const form = document.getElementById('agenda-form');
+    const deleteForm = document.getElementById('agenda-delete-form');
+    let activeDate = '';
+    let editingAgenda = false;
+    const closeModal = () => {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+    };
+    const openModal = () => {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+    };
+    const openDay = button => {
+        activeDate = button.dataset.date;
+        document.querySelectorAll('.calendar-date.is-selected').forEach(dateButton => dateButton.classList.remove('is-selected'));
+        button.classList.add('is-selected');
+        document.getElementById('agenda-day-title').textContent = new Date(`${activeDate}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'long' });
+        dayList.replaceChildren();
+        const agendas = button.closest('.calendar-day').querySelectorAll('.calendar-agenda');
+        document.getElementById('agenda-day-empty').hidden = agendas.length > 0;
+        agendas.forEach(agenda => {
+            const item = document.createElement('button');
+            const time = document.createElement('time');
+            const title = document.createElement('span');
+            item.type = 'button';
+            item.className = 'agenda-list-item';
+            Object.assign(item.dataset, agenda.dataset);
+            time.textContent = agenda.querySelector('time').textContent;
+            title.textContent = agenda.dataset.title;
+            item.append(time, title);
+            dayList.append(item);
+        });
+        dayView.hidden = false;
+        details.hidden = true;
+        form.hidden = true;
+        dialog.setAttribute('aria-labelledby', 'agenda-day-title');
+        openModal();
+    };
+    const openAgenda = button => {
+        document.getElementById('agenda-modal-title').textContent = button.dataset.title;
+        document.getElementById('agenda-description').textContent = button.dataset.description || 'No description.';
+        document.getElementById('agenda-date').textContent = new Date(`${button.dataset.date}T00:00:00`).toLocaleDateString(undefined, { dateStyle: 'long' });
+        document.getElementById('agenda-time').textContent = new Date(`1970-01-01T${button.dataset.time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        form.action = button.dataset.updateUrl;
+        form.querySelector('[name="title"]').value = button.dataset.title;
+        form.querySelector('[name="description"]').value = button.dataset.description;
+        form.querySelector('[name="date"]').value = button.dataset.date;
+        form.querySelector('[name="time"]').value = button.dataset.time;
+        deleteForm.action = button.dataset.deleteUrl;
+        editingAgenda = true;
+        dayView.hidden = true;
+        details.hidden = false;
+        form.hidden = true;
+        dialog.setAttribute('aria-labelledby', 'agenda-modal-title');
+    };
+    const openAddForm = () => {
+        form.reset();
+        form.action = "{% url 'agenda_create' %}";
+        form.querySelector('[name="date"]').value = activeDate;
+        document.getElementById('agenda-form-heading').textContent = 'Add agenda';
+        editingAgenda = false;
+        dayView.hidden = true;
+        details.hidden = true;
+        form.hidden = false;
+        dialog.setAttribute('aria-labelledby', 'agenda-form-heading');
+        form.querySelector('[name="title"]').focus();
+    };
+    document.querySelectorAll('.calendar-date').forEach(button => {
+        button.addEventListener('click', () => openDay(button));
+    });
+    dayList.addEventListener('click', event => {
+        const button = event.target.closest('.agenda-list-item');
+        if (button) openAgenda(button);
+    });
+    document.getElementById('agenda-add-button').addEventListener('click', openAddForm);
+    document.getElementById('agenda-back-to-day').addEventListener('click', () => {
+        details.hidden = true;
+        dayView.hidden = false;
+    });
+    document.getElementById('agenda-edit-button').addEventListener('click', () => {
+        details.hidden = true;
+        form.hidden = false;
+        document.getElementById('agenda-form-heading').textContent = 'Edit agenda';
+        form.querySelector('[name="title"]').focus();
+    });
+    document.getElementById('agenda-cancel-edit').addEventListener('click', () => {
+        form.hidden = true;
+        if (editingAgenda) {
+            details.hidden = false;
+            dialog.setAttribute('aria-labelledby', 'agenda-modal-title');
+        } else {
+            dayView.hidden = false;
+            dialog.setAttribute('aria-labelledby', 'agenda-day-title');
+        }
+    });
+    modal.querySelector('.agenda-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', event => {
+        if (event.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('task-modal');
+    const form = document.getElementById('task-form');
+    const view = document.getElementById('task-view-panel');
+    const open = () => { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); };
+    const close = () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); };
+    const openForm = (button, reassignOnly = false) => {
+        form.reset();
+        form.action = button.dataset.editUrl || "{% url 'task_create' %}";
+        document.getElementById('task-modal-heading').textContent = button.dataset.editUrl ? (reassignOnly ? 'Reassign Task' : 'Edit Task') : 'Create Task';
+        view.hidden = true;
+        form.hidden = false;
+        if (button.dataset.editUrl) {
+            const row = button.closest('tr');
+            const cells = row.querySelectorAll('td');
+            form.querySelector('[name="title"]').value = cells[0].innerText.trim();
+            form.querySelector('[name="description"]').value = button.closest('tr').querySelector('.task-view-button').dataset.description;
+            form.querySelector('[name="assigned_to"]').value = button.dataset.assignee || '';
+            const priorityText = cells[3].innerText.trim();
+            form.querySelector('[name="priority"]').value = [...form.querySelector('[name="priority"]').options].find(option => option.text === priorityText)?.value || 'MEDIUM';
+            const statusText = cells[5].querySelector('select').value;
+            form.querySelector('[name="status"]').value = statusText;
+            form.querySelector('[name="due_date"]').value = button.closest('tr').querySelector('.task-view-button').dataset.dueIso;
+            if (reassignOnly) form.querySelector('[name="assigned_to"]').focus();
+        }
+        open();
+    };
+    document.getElementById('task-create-button').addEventListener('click', event => openForm(event.currentTarget));
+    document.querySelectorAll('.task-edit-button, .task-reassign-button').forEach(button => {
+        button.addEventListener('click', () => openForm(button, button.classList.contains('task-reassign-button')));
+    });
+    document.querySelectorAll('.task-view-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const fields = {title: 'title', description: 'description', assignee: 'assignee', priority: 'priority', status: 'status', due: 'due', created: 'created'};
+            Object.entries(fields).forEach(([key, id]) => document.getElementById(`task-view-${id}`).textContent = button.dataset[key]);
+            form.hidden = true;
+            view.hidden = false;
+            open();
+        });
+    });
+    document.getElementById('task-modal-close').addEventListener('click', close);
+    document.getElementById('task-cancel').addEventListener('click', close);
+    form.addEventListener('submit', event => {
+        const button = event.submitter;
+        if (button) { button.disabled = true; button.classList.add('loading'); }
+    });
+    document.querySelectorAll('.task-status-form').forEach(statusForm => statusForm.addEventListener('submit', event => {
+        const button = event.submitter;
+        if (button) { button.disabled = true; button.classList.add('loading'); }
+    }));
+    modal.addEventListener('click', event => { if (event.target === modal) close(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && modal.classList.contains('open')) close(); });
+});
+</script>
+{% endblock %}
+{% endblock %}

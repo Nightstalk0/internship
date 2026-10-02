@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Login · Internship MS{% endblock %}
+{% block content %}
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="brand-mark lg">IM</div>
+            <h1>Internship Management System</h1>
+            <p>Sign in to your account</p>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="field">
+                <label for="{{ form.username.id_for_label }}">Email or Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}<div class="field-error">{{ form.username.errors }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}<div class="field-error">{{ form.password.errors }}</div>{% endif %}
+            </div>
+            <div class="login-row">
+                <label class="checkbox">
+                    <input type="checkbox" name="remember"> Remember me
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" data-loading>Sign In</button>
+        </form>
+
+        <div class="login-hint">
+            <strong>Demo accounts</strong><br>
+            Admin: <code>admin</code> / <code>admin123</code><br>
+            Intern: <code>intern1</code> / <code>intern123</code>
+        </div>
+        <p class="center muted" style="margin-top:18px">New intern? <a href="{% url 'register' %}">Create an account</a></p>
+    </div>
+</div>
+{% endblock %}

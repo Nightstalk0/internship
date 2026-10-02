@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Delete Intern · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Delete Intern Account</h1>
+        <p class="muted"><a href="{% url 'intern_detail' intern.pk %}" class="link">← Back to intern profile</a></p>
+    </div>
+</div>
+
+<div class="card form-card danger-zone">
+    <div class="danger-ico">⚠</div>
+    <h2>Delete {{ intern.get_full_name|default:intern.username }}?</h2>
+    <p class="muted">
+        This will permanently delete the account <strong>@{{ intern.username }}</strong> ({{ intern.email }})
+        along with <strong>{{ intern.submissions.count }} photo submission{{ intern.submissions.count|pluralize }}</strong>.
+        This action cannot be undone.
+    </p>
+
+    <form method="post" onsubmit="return confirm('Are you absolutely sure? This cannot be undone.');">
+        {% csrf_token %}
+        <div class="field">
+            <label>Type the username <code>{{ intern.username }}</code> to confirm:</label>
+            <input type="text" name="confirm_name" placeholder="{{ intern.username }}" required>
+        </div>
+        <div class="form-actions">
+            <a href="{% url 'intern_detail' intern.pk %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-danger" data-loading>Delete Permanently</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

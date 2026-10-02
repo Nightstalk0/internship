@@ -1,0 +1,12 @@
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+*.sqlite3
+capstone/media/
+capstone_with_documents.zip
+.env
+.env.*
+!.env.example
+staticfiles/
+media/

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}My Submissions · Intern{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>My Submissions</h1>
+        <p class="muted">Track the status of your submitted proof of activity.</p>
+    </div>
+    <a href="{% url 'submit_photo' %}" class="btn btn-primary">+ Submit Photo</a>
+</div>
+
+<div class="filter-bar">
+    <a href="{% url 'my_submissions' %}" class="chip {% if not status %}chip-active{% endif %}">All</a>
+    {% for value, label in choices %}
+    <a href="?status={{ value }}" class="chip {% if status == value %}chip-active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+{% if submissions %}
+<div class="photo-grid">
+    {% for s in submissions %}
+    <div class="photo-card">
+        <img src="{{ s.image.url }}" alt="{{ s.caption|truncatewords:6 }}" class="clickable"
+             onclick="openLightbox('{{ s.image.url }}', '{{ s.caption|escapejs }}')">
+        <div class="photo-card-body">
+            <div class="photo-card-top">
+                <span class="badge badge-{{ s.status|lower }}">{{ s.status }}</span>
+                <span class="photo-date">{{ s.submitted_at|date:"M d, Y h:i A" }}</span>
+            </div>
+            <p class="photo-caption">{{ s.caption }}</p>
+            {% if s.feedback %}
+            <div class="feedback-box">
+                <strong>Feedback:</strong> {{ s.feedback }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-ico">🖼</div>
+    <p>No submissions{% if status %} with status "{{ status }}"{% endif %} yet.</p>
+    <a href="{% url 'submit_photo' %}" class="btn btn-primary">Submit your first photo</a>
+</div>
+{% endif %}
+{% endblock %}

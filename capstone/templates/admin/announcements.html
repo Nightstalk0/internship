@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Announcements · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Announcements</h1>
+        <p class="muted">Broadcast messages to all interns.</p>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="card form-card">
+        <div class="card-head"><h2>New Announcement</h2></div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label>Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}<div class="field-error">{{ form.title.errors }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label>Message</label>
+                {{ form.message }}
+                {% if form.message.errors %}<div class="field-error">{{ form.message.errors }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary" data-loading>Publish Announcement</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>History ({{ announcements|length }})</h2></div>
+        {% if announcements %}
+        <div class="announcement-list">
+            {% for a in announcements %}
+            <div class="announcement">
+                <div class="announcement-title">{{ a.title }}</div>
+                <div class="announcement-msg">{{ a.message|linebreaksbr }}</div>
+                <div class="announcement-meta">{{ a.created_at|date:"M d, Y h:i A" }}{% if a.created_by %} · {{ a.created_by.get_full_name|default:a.created_by.username }}{% endif %}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No announcements yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

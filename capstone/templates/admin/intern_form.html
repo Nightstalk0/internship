@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="muted"><a href="{% url 'intern_list' %}" class="link">← Back to interns</a></p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <h3 class="form-section">Account</h3>
+        <div class="form-grid">
+            <div class="field"><label>First name</label>{{ form.first_name }}</div>
+            <div class="field"><label>Last name</label>{{ form.last_name }}</div>
+            <div class="field"><label>Username *</label>{{ form.username }}{{ form.username.errors }}</div>
+            <div class="field"><label>Email *</label>{{ form.email }}{{ form.email.errors }}</div>
+            <div class="field"><label>Password {% if not form.instance.pk %}*{% endif %}</label>{{ form.password }}
+                <div class="muted small">{{ form.password.help_text }}</div>{{ form.password.errors }}</div>
+        </div>
+
+        <h3 class="form-section">Student Information</h3>
+        <div class="form-grid">
+            <div class="field"><label>Student number</label>{{ form.student_number }}</div>
+            <div class="field"><label>Course</label>{{ form.course }}</div>
+            <div class="field"><label>Phone</label>{{ form.phone }}</div>
+            <div class="field"><label>Hours required</label>{{ form.hours_required }}</div>
+        </div>
+
+        <h3 class="form-section">Internship / Company Assignment</h3>
+        <div class="form-grid">
+            <div class="field"><label>Company name</label>{{ form.company_name }}</div>
+            <div class="field"><label>Position</label>{{ form.position }}</div>
+            <div class="field"><label>Company address</label>{{ form.company_address }}</div>
+            <div class="field"><label>Supervisor name</label>{{ form.supervisor_name }}</div>
+            <div class="field"><label>Start date</label>{{ form.start_date }}</div>
+            <div class="field"><label>End date</label>{{ form.end_date }}</div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% if intern %}{% url 'intern_detail' intern.pk %}{% else %}{% url 'intern_list' %}{% endif %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary" data-loading>Save Intern</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
